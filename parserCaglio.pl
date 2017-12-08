@@ -15,3 +15,40 @@ digit_weight(W) -->
         { code_type(D, digit(W)) }.
 
 
+
+
+sentence -->
+  subject,
+  verb,
+  objects.
+
+subject -->
+  modifier,
+  noun.
+
+objects -->
+  modifier,
+  noun.
+
+modifier --> [the].
+
+noun --> [cat].
+noun --> [mouse].
+noun --> [polar, bear].
+
+verb --> [chases].
+verb --> [eats].
+
+
+
+
+json_obj --> open_brace,
+             close_brace.
+open_brace --> ['{'].
+close_brace --> ['}'].
+
+
+
+json_parse2(JSONString, Object) :-
+    atom_codes(JSONString, Object),
+    json_obj(Object, []).
