@@ -47,14 +47,25 @@ a(A)-->[A].
 
 json_obj(json_obj([])) --> open_brace,
                            [],
-                           close_brace,!.
+                           close_brace, !.
 
 json_obj(json_obj(O)) --> open_brace,
-                          [O],
+                          members(O),
                           close_brace.
 
 open_brace --> [123].
 close_brace --> [125].
+
+members(O) --> pair(O),
+               comma,
+               members(O), !.
+
+members(O) --> pair(O).
+
+
+comma --> [44].
+pair(_O) --> [97].
+
 
 
 
@@ -62,12 +73,13 @@ json_parse(JSONString, Object) :- atom_codes(JSONString, S),
                                   phrase(json_obj(Object), S).
 
 
-file_name('prova.json').
+file_name('JSONCaglio/prova.json').
 json_load(FileName, JSON) :- file_name(FileName),
                              open(FileName, read, In),
                              read(In, JSONString),
                              close(In),
                              json_parse(JSONString, JSON).
+
 
 
 
