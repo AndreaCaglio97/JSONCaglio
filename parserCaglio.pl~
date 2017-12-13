@@ -40,15 +40,23 @@ verb --> [chases].
 verb --> [eats].
 
 
+a(A)-->[A].
+
+json_obj([]) --> open_brace,
+                [],
+                close_brace,!.
 
 
-json_obj --> open_brace,
-             close_brace.
-open_brace --> ['{'].
-close_brace --> ['}'].
+json_obj(json_obj(O)) --> open_brace,
+                [O],
+                close_brace.
+open_brace --> [123].
+close_brace --> [125].
 
 
 
 json_parse2(JSONString, Object) :-
-    atom_chars(JSONString, Object),
-    json_obj(Object, []).
+    atom_codes(JSONString, S),
+    phrase(json_obj(Object), S).
+
+
