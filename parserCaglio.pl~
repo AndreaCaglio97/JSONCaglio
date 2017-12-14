@@ -45,16 +45,119 @@ a(A)-->[A].
 
 
 
-json_obj(json_obj([])) --> open_brace,
+
+
+
+
+integer(I) -->
+        digit(D0),
+        digits(D),
+        { number_codes(I, [D0|D])
+        }.
+
+digits([D|T]) -->
+        digit(D), !,
+        digits(T).
+digits([]) -->
+        [].
+
+digit(D) -->
+        [D],
+        { code_type(D, digit)
+        }.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+json(JSON) --> json_obj(JSON), ! ;
+               json_array(JSON), ! ;
+               json_number(JSON), ! ;
+               json_string(JSON).
+
+
+json_obj(json_object(Pairs)) --> open_brace,
+                               sepBy(comma , pair, Pairs),
+                               close_brace.
+
+json_array(json_array(Array)) --> open_bracket,
+                                  sepBy(comma, json, Array),
+                                  close_bracket.
+
+
+
+sepBy(Sep, P, [X | Xs]) --> call(P, X),
+                            sepByAux(Sep, P, Xs).
+
+sepBy(_, _, []) --> [].
+
+sepByAux(Sep, P, [X | Xs]) --> call(Sep),
+                               call(P, X),
+                               sepByAux(Sep, P, Xs).
+
+sepByAux(_, _, []) --> [].
+
+
+pair((Key, Value)) --> json_string(Key),
+                       colon,
+                       json(Value).
+
+
+
+json_number(N) --> one_or_more(in_range("0", "9"), Chars),
+                   { name(N, Chars) },
+                   spaces.
+
+spaces --> char(Space),
+           { member(Space, " \t\n") },
+           spaces.
+
+spaces --> [].
+
+
+in_range([L], [H], C) --> satisfy(between(L, H), C).
+
+satisfy(Pred, C) --> char(C),
+                    { call(Pred, C) }.
+char(C, [C | S], S).
+
+between(L, H, C) :- L =< C,
+                    H >= C.
+
+
+zero_or_more(Parser, List) --> one_or_more(Parser, List).
+
+zero_or_more(_, []) --> [].
+
+
+
+one_or_more(Parser, [One | More]) --> call(Parser, One),
+                                      zero_or_more(Parser, More).
+
+
+
+
+
+json_string(Name) --> { [DQuote] = "\"" },
+                      char(DQuote),
+                      zero_or_more(json_char, RawString),
+                      char(DQuote),
+                      spaces,
+                      { name(Name, RawString) }.
+
+
+
+json_obj2(json_obj([])) --> open_brace,
                            [],
                            close_brace, !.
 
-json_obj(json_obj([O])) --> open_brace,
-                          members(O),
-                          close_brace.
-
-open_brace --> [123].
-close_brace --> [125].
+json_obj2(json_obj([O])) --> open_brace,
+                            members(O),
+                            close_brace.
 
 members(O) --> pair(O),
                comma,
@@ -63,14 +166,39 @@ members(O) --> pair(O),
 members(O) --> pair(O).
 
 
-comma --> [44].
 pair(O) --> [O].
 
 
 
+json_array2(json_array([])) --> open_bracket,
+                               [],
+                               close_bracket, !.
 
-json_parse(JSONString, Object) :- atom_codes(JSONString, S),
-                                  phrase(json_obj(Object), S).
+json_array2(json_array([A])) --> open_bracket,
+                                [A],
+                                close_bracket.
+
+%json_array(json_array(A)) --> open_qbrace,
+%                          [elements(A)],
+%                          close_qbrace.
+%elements(JSON) --> [];
+                  % Value,
+
+
+colon --> [58].
+
+comma --> [44].
+
+open_brace --> [123].
+close_brace --> [125].
+
+open_bracket --> [91].
+close_bracket --> [93].
+
+
+
+json_parse(JSONString, JSON) :- atom_codes(JSONString, S),
+                                 phrase(json(JSON), S).
 
 
 file_name('JSONCaglio/prova.json').
