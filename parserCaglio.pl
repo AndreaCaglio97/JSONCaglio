@@ -45,11 +45,38 @@ a(A)-->[A].
 
 
 
+
+
+
+
+integer(I) -->
+        digit(D0),
+        digits(D),
+        { number_codes(I, [D0|D])
+        }.
+
+digits([D|T]) -->
+        digit(D), !,
+        digits(T).
+digits([]) -->
+        [].
+
+digit(D) -->
+        [D],
+        { code_type(D, digit)
+        }.
+
+
+
+
+
+
+
 json_obj(json_obj([])) --> open_brace,
                            [],
                            close_brace, !.
 
-json_obj(json_obj(O)) --> open_brace,
+json_obj(json_obj([O])) --> open_brace,
                           members(O),
                           close_brace.
 
@@ -64,7 +91,7 @@ members(O) --> pair(O).
 
 
 comma --> [44].
-pair(_O) --> [97].
+pair(O) --> [O].
 
 
 

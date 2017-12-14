@@ -49,14 +49,14 @@ json_obj(json_obj([])) --> open_brace,
                            [],
                            close_brace, !.
 
-json_obj(json_obj(O)) --> open_brace,
+json_obj(json_obj([O])) --> open_brace,
                           members(O),
                           close_brace.
 
 open_brace --> [123].
 close_brace --> [125].
 
-members(O) --> pair,
+members(O) --> pair(O),
                comma,
                members(O), !.
 
@@ -64,7 +64,7 @@ members(O) --> pair(O).
 
 
 comma --> [44].
-pair(_O) --> [97].
+pair(O) --> [O].
 
 
 
