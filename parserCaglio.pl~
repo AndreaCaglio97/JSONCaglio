@@ -108,9 +108,14 @@ pair((Key, Value)) --> json_string(Key),
 
 
 
-json_number(N) --> one_or_more(in_range("0", "9"), Chars),
-                   { name(N, Chars) },
+json_number(N) --> integer(N),
                    spaces.
+
+json_char(C) --> string(""), % escaped dquote
+                 { [C] = "\"" }.
+
+json_char(C) --> char(C),
+                { [C] \= "\"" }. % any non dquote
 
 spaces --> char(Space),
            { member(Space, " \t\n") },
@@ -119,14 +124,10 @@ spaces --> char(Space),
 spaces --> [].
 
 
-in_range([L], [H], C) --> satisfy(between(L, H), C).
-
-satisfy(Pred, C) --> char(C),
-                    { call(Pred, C) }.
 char(C, [C | S], S).
 
-between(L, H, C) :- L =< C,
-                    H >= C.
+string(S) --> foldl(char, S).
+
 
 
 zero_or_more(Parser, List) --> one_or_more(Parser, List).
@@ -139,15 +140,19 @@ one_or_more(Parser, [One | More]) --> call(Parser, One),
                                       zero_or_more(Parser, More).
 
 
-
-
-
-json_string(Name) --> { [DQuote] = "\"" },
-                      char(DQuote),
+json_string(Name) --> dq,
                       zero_or_more(json_char, RawString),
-                      char(DQuote),
+                      dq,
                       spaces,
-                      { name(Name, RawString) }.
+
+                     { string_codes(Name, RawString) }. % convert raw string back to atom
+
+
+
+json_string2(Name) --> dq,
+                      zero_or_more(json_char, RawString),
+                      dq,
+                      { string_codes(X,RawString) }.
 
 
 
@@ -163,10 +168,6 @@ members(O) --> pair(O),
                comma,
                members(O), !.
 
-members(O) --> pair(O).
-
-
-pair(O) --> [O].
 
 
 
@@ -182,9 +183,9 @@ json_array2(json_array([A])) --> open_bracket,
 %                          [elements(A)],
 %                          close_qbrace.
 %elements(JSON) --> [];
-                  % Value,
-
-
+                  % Value,numbers(JSON) -->digit(JSON);
+dq --> [34].
+%digit -->[48];[49];[50];[51];[52];[53];[54];[55];[56];[57];[58].
 colon --> [58].
 
 comma --> [44].
