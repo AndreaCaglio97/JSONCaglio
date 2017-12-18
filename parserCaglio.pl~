@@ -108,8 +108,7 @@ pair((Key, Value)) --> json_string(Key),
 
 
 
-json_number(N) --> integer(N),
-                   spaces.
+json_number(N) --> sepBy(dot, integer, N).
 
 json_char(C) --> string(""), % escaped dquote
                  { [C] = "\"" }.
@@ -144,15 +143,13 @@ json_string(Name) --> dq,
                       zero_or_more(json_char, RawString),
                       dq,
                       spaces,
-
-                     { string_codes(Name, RawString) }. % convert raw string back to atom
-
+                     { string_codes(Name, RawString) }.
 
 
-json_string2(Name) --> dq,
-                      zero_or_more(json_char, RawString),
-                      dq,
-                      { string_codes(X,RawString) }.
+
+
+%pair(X,Y,(X,Y)).
+
 
 
 
@@ -178,14 +175,12 @@ json_array2(json_array([])) --> open_bracket,
 json_array2(json_array([A])) --> open_bracket,
                                 [A],
                                 close_bracket.
+dot --> [46].
 
-%json_array(json_array(A)) --> open_qbrace,
-%                          [elements(A)],
-%                          close_qbrace.
-%elements(JSON) --> [];
-                  % Value,numbers(JSON) -->digit(JSON);
 dq --> [34].
-%digit -->[48];[49];[50];[51];[52];[53];[54];[55];[56];[57];[58].
+
+sq --> [39].
+
 colon --> [58].
 
 comma --> [44].
