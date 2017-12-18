@@ -108,7 +108,8 @@ pair((Key, Value)) --> json_string(Key),
 
 
 
-json_number(N) --> sepBy(dot, integer, N).
+json_number(N) --> integer(N),
+                   spaces.
 
 json_char(C) --> string(""), % escaped dquote
                  { [C] = "\"" }.
@@ -207,5 +208,5 @@ json_load(FileName, JSON) :- file_name(FileName),
 
 
 
-space(_S) --> [ ];[\n];[\r];[\t].
-space([]) --> [].
+%space(_S) --> [ ];[\n];[\r];[\t].
+%space([]) --> [].
