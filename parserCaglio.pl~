@@ -70,24 +70,28 @@ digit(D) -->
 %               dot,
 %              integer(Fs).
 
-float(F) --> digit(D0),
-             digits_float(D),
-             {
-                 number_codes(F, [D0|D])
-             }.
-
-digits_float([dot,D|T]) --> dot,
-                        digit(D),
-                        !,
-                        digits(T).
-
-digits_float([D|T]) --> digit(D), !,
-                        digits_float(T).
 
 
-digits_float([]) --> [].
+
+%float(F) --> digit(D0),
+%             digits_float(D),
+%             {
+%                 number_codes(F, [D0|D])
+%             }.
+
+%digits_float([D|T]) --> dot,
+%                        digit(D),
+%                        !,
+%                        digits(T).
+
+%digits_float([D|T]) --> digit(D), !,
+%                        digits_float(T).
 
 
+%digits_float([]) --> [].
+
+
+float(F) --> sepBy(dot , integer, F).
 
 
 

@@ -1,104 +1,23 @@
-%json_parse(JSONString, Object) :- atom_chars(JSONString, Object).
-%json_parse(JSONString, Object) :- atom_codes(JSONString, Object).
-%json_parse(JSONString, Object) :- string_codes(JSONString, Object).
-%json_parse(JSONString, Object) :- atom_string(JSONString, Object).
+number(F) --> digit(D0),
+              digits(D),
+              {
+                  number_codes(F, [D0|D])
+              }.
 
-%json_parse(JSONString, Object) :- atom_chars(JSONString, Object).
-%                                  json_obj(JSONString, Object),
-%                                  json_array(JSONString, Object).
-%json_obj({},json_obj(_)).
-%json_array([],json_array(_)).
+digits([46,D|T]) --> dot,
+                     digit(D),
+                     !,
+                     digits(T).
 
+digits([D|T]) --> digit(D), !,
+                  digits(T).
 
-digit_weight(W) -->
-        [D],
-        { code_type(D, digit(W)) }.
+digits([]) --> [].
 
-
-
-
-sentence -->
-  subject,
-  verb,
-  objects.
-
-subject -->
-  modifier,
-  noun.
-
-objects -->
-  modifier,
-  noun.
-
-modifier --> [the].
-
-noun --> [cat].
-noun --> [mouse].
-noun --> [polar, bear].
-
-verb --> [chases].
-verb --> [eats].
-
-
-a(A)-->[A].
-
-
-
-
-
-
-
-
-integer(I) -->
-        digit(D0),
-        digits(D),
-        { number_codes(I, [D0|D])
-        }.
-
-digits([D|T]) -->
-        digit(D), !,
-        digits(T).
-digits([]) -->
-        [].
-
-digit(D) -->
-        [D],
-        { code_type(D, digit)
-        }.
-
-%float(F|Fs) --> integer(F),
-%               dot,
-%              integer(Fs).
-
-
-
-
-%float(F) --> digit(D0),
-%             digits_float(D),
-%             {
-%                 number_codes(F, [D0|D])
-%             }.
-
-%digits_float([D|T]) --> dot,
-%                        digit(D),
-%                        !,
-%                        digits(T).
-
-%digits_float([D|T]) --> digit(D), !,
-%                        digits_float(T).
-
-
-%digits_float([]) --> [].
-
-
-float(F) --> sepBy(dot , integer, F).
-
-
-
-
-
-
-
+digit(D) --> [D],
+             {
+                 code_type(D, digit)
+             }.
 
 %%%%%%%%%%%%%%%%%%%%%%%
 
@@ -139,9 +58,7 @@ pair((Key, Value)) --> json_string(Key),
 
 
 
-json_number(N) --> float(N), !,
-                   spaces, !;
-                   integer(N), !,
+json_number(N) --> number(N), !,
                    spaces, !.
 
 
@@ -251,6 +168,8 @@ skip_spaces([X | Lista],Resto):-
     X=newline,!,
     skip_spaces(Lista,Resto).
 skip_spaces(Resto,Resto).
+
+
 
 %space(_S) --> [ ];[\n];[\r];[\t].
 %space([]) --> [].
