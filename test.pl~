@@ -27,17 +27,22 @@ json(JSON) --> json_obj(JSON), ! ;
                json_string(JSON).
 
 
-json_obj(json_object(Pairs)) --> open_brace,
-                                 sepBy(comma , pair, Pairs),
-                                 close_brace.
+%json_obj(json_object(Pairs)) --> open_brace,
+%                                 sepBy(comma , pair, Pairs),
+%                                 close_brace.
 
-json_array(json_array(Array)) --> delete_space,
+json_obj(json_object([Pairs])) --> open_brace,
+                                   pairs(Pairs),
+                                   close_brace.
+
+
+json_array(json_array(Array)) --> spazio,
                                   open_bracket,
-                                  delete_space,
+                                  spazio,
                                   sepBy(comma, json, Array),
-                                  delete_space,
+                                  spazio,
                                   close_bracket,
-                                  delete_space.
+                                  spazio.
 
 
 
@@ -52,6 +57,11 @@ sepByAux(Sep, P, [X | Xs]) --> call(Sep),
 
 sepByAux(_, _, []) --> [].
 
+pairs(Pairs) --> pair(Pairs),
+                 comma,
+                 pairs(Pairs);
+                 pair(Pairs);
+                 [].
 
 pair((Key, Value)) --> json_string(Key),
                        colon,
@@ -59,9 +69,7 @@ pair((Key, Value)) --> json_string(Key),
 
 
 
-json_number(N) --> delete_space,
-                   number(N),
-                   delete_space.
+json_number(N) --> number(N).
 
 
 %json_char(C) --> string(""), % escaped dquote
@@ -97,12 +105,10 @@ one_or_more(Parser, [One | More]) --> call(Parser, One),
                                       zero_or_more(Parser, More).
 
 
-json_string(Name) --> delete_space,
-                      dq,
-                      zero_or_more(json_char, RawString),
-                      dq,
-                      delete_space,
-                     { string_codes(Name, RawString) }.
+json_string(_Name) --> dq,
+                      [_Name],
+                      dq.
+                  %  { string_codes(Name, _RawString) }.
 
 
 
@@ -149,22 +155,21 @@ json_load(FileName, JSON) :- file_name(FileName),
                              json_parse(JSONString, JSON).
 
 
-%delete_space([],[]).
+delete_space([],[]).
 
-%delete_space([X | Lista],Resto):- X = 32, !,
-%                                  delete_space(Lista,Resto).
+delete_space([X | Lista],Resto):- X = 32, !,
+                                  delete_space(Lista,Resto).
 
-%delete_space([X | Lista],Resto):- X = 9, !,
-%                                  delete_space(Lista,Resto).
+delete_space([X | Lista],Resto):- X = 9, !,
+                                  delete_space(Lista,Resto).
 
-%delete_space([X | Lista],Resto):- X = 10, !,
-%                                  delete_space(Lista,Resto).
+delete_space([X | Lista],Resto):- X = 10, !,
+                                  delete_space(Lista,Resto).
 
-%delete_space([X | Lista],Resto):- X = 13, !,
-%                                  delete_space(Lista,Resto).
+delete_space([X | Lista],Resto):- X = 13, !,
+                                  delete_space(Lista,Resto).
 
-%delete_space(Resto,Resto).
-
+delete_space(Resto,Resto).
 
 
 
@@ -186,8 +191,4 @@ prova(X,Y) :- atom_codes(X, Y),
               delete_space(Y,Y).
               %atom_string(Y2,Y).
 
-delete_space --> space, delete_space;
-                 tab, delete_space;
-                 nl,delete_space;
-                 cr,delete_space;
-                 [].
+spazio --> space,spazio;[].

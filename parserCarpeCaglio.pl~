@@ -19,9 +19,6 @@ digit(D) --> [D],
                  code_type(D, digit)
              }.
 
-%%%%%%%%%%%%%%%%%%%%%%%
-
-
 
 
 json(JSON) --> json_obj(JSON), ! ;
@@ -31,12 +28,16 @@ json(JSON) --> json_obj(JSON), ! ;
 
 
 json_obj(json_object(Pairs)) --> open_brace,
-                               sepBy(comma , pair, Pairs),
-                               close_brace.
+                                 sepBy(comma , pair, Pairs),
+                                 close_brace.
 
-json_array(json_array(Array)) --> open_bracket,
+json_array(json_array(Array)) --> delete_space,
+                                  open_bracket,
+                                  delete_space,
                                   sepBy(comma, json, Array),
-                                  close_bracket.
+                                  delete_space,
+                                  close_bracket,
+                                  delete_space.
 
 
 
@@ -58,21 +59,24 @@ pair((Key, Value)) --> json_string(Key),
 
 
 
-json_number(N) --> number(N), !,
-                   spaces, !.
+json_number(N) --> number(N).
 
 
-json_char(C) --> string(""), % escaped dquote
-                 { [C] = "\"" }.
+%json_char(C) --> string(""), % escaped dquote
+%                 { [C] = "\"" }.
 
-json_char(C) --> char(C),
-                { [C] \= "\"" }. % any non dquote
+%json_char(C) --> char(C),
+%                { [C] \= "\"" }. % any non dquote
 
-spaces --> char(Space),
-           { member(Space, " \t\n") },
-           spaces.
+json_char(C) -->
+    string("\\\""), % escaped dquote
 
-spaces --> [].
+    { [C] = "\"" }.
+
+json_char(C) -->
+    char(C),
+
+    { [C] \= "\"" }. % any non dquote
 
 
 char(C, [C | S], S).
@@ -91,10 +95,11 @@ one_or_more(Parser, [One | More]) --> call(Parser, One),
                                       zero_or_more(Parser, More).
 
 
-json_string(Name) --> dq,
+json_string(Name) --> delete_space,
+                      dq,
                       zero_or_more(json_char, RawString),
                       dq,
-                      spaces,
+                      delete_space,
                      { string_codes(Name, RawString) }.
 
 
@@ -104,30 +109,15 @@ json_string(Name) --> dq,
 
 
 
-
-json_obj2(json_obj([])) --> open_brace,
-                           [],
-                           close_brace, !.
-
-json_obj2(json_obj([O])) --> open_brace,
-                            members(O),
-                            close_brace.
-
-members(O) --> pair(O),
-               comma,
-               members(O), !.
-
-
-
-
-json_array2(json_array([])) --> open_bracket,
-                               [],
-                               close_bracket, !.
-
-json_array2(json_array([A])) --> open_bracket,
-                                [A],
-                                close_bracket.
 dot --> [46].
+
+space --> [32].
+
+tab --> [9].
+
+nl --> [10].
+
+cr --> [13].
 
 dq --> [34].
 
@@ -145,8 +135,8 @@ close_bracket --> [93].
 
 
 
-json_parse(JSONString, JSON) :- atom_codes(JSONString, S),
-                                 phrase(json(JSON), S).
+json_parse(JSONString, JSON) :- atom_codes(JSONString, List),
+                                phrase(json(JSON), List).
 
 
 file_name('JSONCaglio/prova.json').
@@ -157,20 +147,45 @@ json_load(FileName, JSON) :- file_name(FileName),
                              json_parse(JSONString, JSON).
 
 
-skip_spaces([],[]).
-skip_spaces([X | Lista],Resto):-
-    X=spazio,!,
-    skip_spaces(Lista,Resto).
-skip_spaces([X | Lista],Resto):-
-    X=tab,!,
-    skip_spaces(Lista,Resto).
-skip_spaces([X | Lista],Resto):-
-    X=newline,!,
-    skip_spaces(Lista,Resto).
-skip_spaces(Resto,Resto).
+%delete_space([],[]).
+
+%delete_space([X | Lista],Resto):- X = 32, !,
+%                                  delete_space(Lista,Resto).
+
+%delete_space([X | Lista],Resto):- X = 9, !,
+%                                  delete_space(Lista,Resto).
+
+%delete_space([X | Lista],Resto):- X = 10, !,
+%                                  delete_space(Lista,Resto).
+
+%delete_space([X | Lista],Resto):- X = 13, !,
+%                                  delete_space(Lista,Resto).
+
+%delete_space(Resto,Resto).
 
 
 
-%space(_S) --> [ ];[\n];[\r];[\t].
-%space([]) --> [].
 
+%delete_space([],[]).
+%delete_space([X|Xs],Ys) :- X = 32,
+%                           delete_space(Xs,Ys), !;
+%                           X = 9,
+%                           delete_space(Xs,Ys), !;
+%                           X = 10,
+%                           delete_space(Xs,Ys), !;
+%                           X = 13,
+%                           delete_space(Xs,Ys), !.
+
+%delete_space([X|Xs],[X|Ys]) :- delete_space(Xs,Ys).
+
+
+
+prova(X,Y) :- atom_codes(X, Y),
+              delete_space(Y,Y).
+              %atom_string(Y2,Y).
+
+delete_space --> space, delete_space;
+                 tab, delete_space;
+                 nl,delete_space;
+                 cr,delete_space;
+                 [].
