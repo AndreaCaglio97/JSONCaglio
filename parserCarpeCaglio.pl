@@ -1,19 +1,19 @@
-json_load(FileName, JSON) :- file_name(FileName),
-                             open(FileName, read, In),
+json_load(FileName, JSON) :- open(FileName, read, In),
                              read(In, JSONString),
                              close(In),
                              json_parse(JSONString, JSON).
 
-file_name('JSONCaglio/prova.json').
-
 json_parse(JSONString, JSON) :- atom_codes(JSONString, List),
-                                phrase(json(JSON), List).
+                                phrase(json_start(JSON), List).
+
+json_start(JSON) --> json_obj(JSON), !;
+                     json_array(JSON), !.
 
 json(JSON) --> json_obj(JSON), !;
                json_array(JSON), !;
                json_number(JSON), !;
                json_string(JSON).
-			   
+
 json_obj(json_object(Pairs)) --> delete_space,
                                  open_brace,
                                  delete_space,
@@ -33,23 +33,23 @@ json_array(json_array(Array)) --> delete_space,
 json_number(N) --> delete_space,
                    number(N),
                    delete_space.
-				   
+
 json_string(S) --> delete_space,
                    string_parse_dq(S),
-                   delete_space;
+                   delete_space, !;
                    delete_space,
                    string_parse_sq(S),
                    delete_space.
-				   
-				   
-divide(Sep, P, [X | Xs]) --> call(P, X),
-                             divide_symbol(Sep, P, Xs).
+
+
+divide(Div, G, [X | Xs]) --> call(G, X),
+                             divide_symbol(Div, G, Xs).
 
 divide(_, _, []) --> [].
 
-divide_symbol(Sep, P, [X | Xs]) --> call(Sep),
-                                    call(P, X),
-                                    divide_symbol(Sep, P, Xs).
+divide_symbol(Div, G, [X | Xs]) --> call(Div),
+                                    call(G, X),
+                                    divide_symbol(Div, G, Xs).
 
 divide_symbol(_, _, []) --> [].
 
@@ -58,8 +58,8 @@ pair((Key, Value)) --> json_string(Key),
                        colon,
                        delete_space,
                        json(Value).
-			   
-			   
+
+
 string_parse_dq(S) --> dq,
                        char_parse_dq(C0),
                        chars_parse_dq(C),
@@ -99,22 +99,44 @@ chars_parse_sq([C | T]) --> char_parse_sq(C), !,
 
 %chars_parse_sq([]) --> [].
 
-
-number(F) --> digit(D0),
+number(F) --> sign(S),
+              digit(D0),
+              digits(D),
+              {
+                  number_codes(F, [S, D0 | D])
+              };
+              digit(D0),
               digits(D),
               {
                   number_codes(F, [D0 | D])
               }.
 
+sign(S) --> [S],
+            {
+                S = 45
+            };
+            [S],
+            {
+                S = 43
+            };
+            {
+                fail
+            }.
+
 digits([46, D | T]) --> dot,
                         digit(D),
                         !,
-                        digits(T).
+                        digits_after_dot(T).
 
 digits([D | T]) --> digit(D), !,
                     digits(T).
 
 digits([]) --> [].
+
+digits_after_dot([D | T]) --> digit(D), !,
+                              digits_after_dot(T).
+
+digits_after_dot([]) --> [].
 
 digit(D) --> [D],
              {
