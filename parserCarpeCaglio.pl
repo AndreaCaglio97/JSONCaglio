@@ -14,7 +14,7 @@ json(JSON) --> json_obj(JSON), !;
                json_number(JSON), !;
                json_string(JSON).
 
-json_obj(json_object(Pairs)) --> delete_space,
+json_obj(json_obj(Pairs)) --> delete_space,
                                  open_brace,
                                  delete_space,
                                  divide(comma, pair, Pairs),
@@ -175,3 +175,34 @@ close_brace --> [125].
 
 prova(JSONString, JSON, Elemento) :- json_parse(JSONString, JSON),
                                      Elemento is JSON.
+
+json_get(json_obj(Members), [Field | OtherFields], Result) :-
+    find(Members, [Field], AuxResult),
+    json_get(AuxResult, OtherFields, Result), !.
+
+json_get(json_array(Elements), [Field | OtherFields], Result) :-
+    nth(Elements, Field, AuxResult),
+    json_get(AuxResult, OtherFields, Result), !.
+
+json_get(Result, [], Result).
+
+json_get(json_obj(JSON_obj), Field, Result) :-
+    find(JSON_obj, Field, Result), !.
+
+json_get(json_array(Array), Index, Result) :-
+    nth(Array, Index, Result), !.
+
+json_get(JSON_obj, Field, Result) :-
+    json_get(JSON_obj, [Field], Result).
+
+find([Member | OtherMembers], [Field], Result) :-
+    Member = (Field, Result);
+    find(OtherMembers, [Field], Result).
+
+find([], _, _) :- fail.
+
+nth(Array, Index, Element) :-
+    number(Index),
+    length(Before, Index),
+    append(Before, [Element | _], Array).
+

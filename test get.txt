@@ -1,0 +1,12 @@
+json_parse('{"nome" : "Arthur", "cognome" : "Dent"}', O), json_get(O, ["nome"], R)
+
+
+json_parse('{"nome": "Arthur", "cognome": "Dent"}', O), json_get(O, "nome", R)
+
+
+json_parse('{"nome" : "Zaphod","heads" : ["Head1", "Head2"]}',Z),json_get(Z, ["heads", 1], R)
+
+
+json_parse(’[1, 2, 3]’, A), json_get(A, [3], E)
+
+json_parse('{"nome" : "Arthur", "cognome" : "Dent"}', json_obj([(nome, N) | _])
