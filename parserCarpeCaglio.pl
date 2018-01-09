@@ -3,6 +3,71 @@ json_load(FileName, JSON) :- open(FileName, read, In),
                              close(In),
                              json_parse(JSONString, JSON).
 
+json_write(Object, FileName) :-
+                          open(FileName, write, Out),
+                          (jw_object(Object, JSON_string), !;
+                          jw_array(Object, JSON_string), !),
+                          concat("\'", JSON_string, Aux_string),
+                          concat(Aux_string, "\'", JSON_new_string),
+                          atom_string(JSON_atom, JSON_new_string),
+                          write(Out, JSON_atom),
+                          put(Out, 0'.),
+                          close(Out).
+
+jw_object(json_obj(Members), Obj_string) :-
+                            jw_members(Members, Members_string),
+                            concat("{", Members_string, Aux_string),
+                            concat(Aux_string, "}", Obj_string).
+
+jw_array(json_array(Elements), Array_string) :-
+                           jw_elements(Elements, Elements_string),
+                           concat("[", Elements_string, Aux_string),
+                           concat(Aux_string, "]", Array_string).
+
+jw_members([], "").
+
+jw_members([Member], Pair_string) :- jw_pair(Member, Pair_string).
+
+jw_members([Member | MoreMembers], Members_string) :-
+                jw_pair(Member, Pair_string),
+                jw_members(MoreMembers, NMembers_string),
+                concat(Pair_string, ",", Aux_string),
+                concat(Aux_string, NMembers_string, Members_string).
+
+jw_elements([], "").
+
+jw_elements([Element], Value_string) :-
+    jw_value(Element, Value_string).
+
+jw_elements([Element | MoreElements], Elements_string) :-
+             jw_value(Element, Value_string),
+             jw_elements(MoreElements, NElements_string),
+             concat(Value_string, ",", Aux_string),
+             concat(Aux_string, NElements_string, Elements_string).
+
+jw_pair(Pair, Pair_string) :-
+                      Pair = (String, Value),
+                      jw_string(String, String_s),
+                      concat(String_s, ":", Aux_string),
+                      jw_value(Value, Value_string),
+                      concat(Aux_string, Value_string, Pair_string).
+
+jw_value(Value, Value_string) :- jw_object(Value, Value_string).
+
+jw_value(Value, Value_string) :- jw_array(Value, Value_string).
+
+jw_value(Value, Value_string) :- jw_number(Value, Value_string).
+
+jw_value(Value, Value_string) :- jw_string(Value, Value_string).
+
+jw_string(String, String_s) :- concat("\"", String, Aux),
+                               concat(Aux, "\"", String_s).
+
+jw_number(Number, Number_string) :-
+                               number(Number),
+                               number_string(Number, Number_string).
+
+
 json_parse(JSONString, JSON) :- atom_codes(JSONString, List),
                                 phrase(json_start(JSON), List).
 
@@ -173,8 +238,6 @@ close_bracket --> [93].
 open_brace --> [123].
 close_brace --> [125].
 
-prova(JSONString, JSON, Elemento) :- json_parse(JSONString, JSON),
-                                     Elemento is JSON.
 
 json_get(json_obj(Members), [Field | OtherFields], Result) :-
     find(Members, [Field], AuxResult),
@@ -205,4 +268,6 @@ nth(Array, Index, Element) :-
     number(Index),
     length(Before, Index),
     append(Before, [Element | _], Array).
+
+
 
