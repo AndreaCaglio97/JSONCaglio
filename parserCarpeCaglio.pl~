@@ -3,69 +3,74 @@ json_load(FileName, JSON) :- open(FileName, read, In),
                              close(In),
                              json_parse(JSONString, JSON).
 
-json_write(Object, FileName) :-
+json_write(JSON, FileName) :-
                           open(FileName, write, Out),
-                          (jw_object(Object, JSON_string);
-                          jw_array(Object, JSON_string)),
-                          concat("\'", JSON_string, Aux_string),
-                          concat(Aux_string, "\'", JSON_new_string),
-                          atom_string(JSON_atom, JSON_new_string),
-                          write(Out, JSON_atom),
+                          (write_obj(JSON, String), !;
+                          write_array(JSON, String), !),
+                          concat("\'", String, String_rest),
+                          concat(String_rest, "\'", String_file),
+                          atom_string(Atom_file, String_file),
+                          write(Out, Atom_file),
                           put(Out, 0'.),
                           close(Out).
 
-jw_object(json_obj(Members), Obj_string) :-
-                            jw_members(Members, Members_string),
-                            concat("{", Members_string, Aux_string),
-                            concat(Aux_string, "}", Obj_string).
+write_obj(json_obj(Member), String_obj) :-
+                            write_member(Member, String_member),
+                            concat("{", String_member, String_rest),
+                            concat(String_rest, "}", String_obj).
 
-jw_array(json_array(Elements), Array_string) :-
-                           jw_elements(Elements, Elements_string),
-                           concat("[", Elements_string, Aux_string),
-                           concat(Aux_string, "]", Array_string).
+write_array(json_array(Element), String_array) :-
+                           write_element(Element, String_element),
+                           concat("[", String_element, String_rest),
+                           concat(String_rest, "]", String_array).
 
-jw_members([], "").
+write_member([], "").
 
-jw_members([Member], Pair_string) :- jw_pair(Member, Pair_string).
+write_member([Member], String_pair) :-
+                                    write_pair(Member, String_pair).
 
-jw_members([Member | MoreMembers], Members_string) :-
-                jw_pair(Member, Pair_string),
-                jw_members(MoreMembers, NMembers_string),
-                concat(Pair_string, ",", Aux_string),
-                concat(Aux_string, NMembers_string, Members_string).
+write_member([Member | Members], String_member) :-
+                 write_pair(Member, String_pair),
+                 write_member(Members, String_members),
+                 concat(String_pair, ",", String_rest),
+                 concat(String_rest, String_members, String_member).
 
-jw_elements([], "").
+write_element([], "").
 
-jw_elements([Element], Value_string) :-
-    jw_value(Element, Value_string).
+write_element([Element], String_value) :-
+                                 write_value(Element, String_value).
 
-jw_elements([Element | MoreElements], Elements_string) :-
-             jw_value(Element, Value_string),
-             jw_elements(MoreElements, NElements_string),
-             concat(Value_string, ",", Aux_string),
-             concat(Aux_string, NElements_string, Elements_string).
+write_element([Element | Elements], String_element) :-
+               write_value(Element, String_value),
+               write_element(Elements, String_elements),
+               concat(String_value, ",", String_rest),
+               concat(String_rest, String_elements, String_element).
 
-jw_pair(Pair, Pair_string) :-
-                      Pair = (String, Value),
-                      jw_string(String, String_s),
-                      concat(String_s, ":", Aux_string),
-                      jw_value(Value, Value_string),
-                      concat(Aux_string, Value_string, Pair_string).
+write_pair(Pair, String_pair) :-
+                     Pair = (String, Value),
+                     write_string(String, String_final),
+                     concat(String_final, ":", String_rest),
+                     write_value(Value, String_value),
+                     concat(String_rest, String_value, String_pair).
 
-jw_value(Value, Value_string) :- jw_object(Value, Value_string).
+write_value(Value, String_value) :- write_obj(Value, String_value);
+                                    write_array(Value, String_value);
+                                    write_number(Value, String_value);
+                                    write_string(Value, String_value).
 
-jw_value(Value, Value_string) :- jw_array(Value, Value_string).
+%write_value(Value, String_value) :- write_array(Value, String_value).
 
-jw_value(Value, Value_string) :- jw_number(Value, Value_string).
+%write_value(Value, String_value) :- write_number(Value, String_value).
 
-jw_value(Value, Value_string) :- jw_string(Value, Value_string).
+%write_value(Value, String_value) :- write_string(Value, String_value).
 
-jw_string(String, String_s) :- concat("\"", String, Aux),
-                               concat(Aux, "\"", String_s).
+write_string(String, String_final) :-
+                                   concat("\"", String, Rest),
+                                   concat(Rest, "\"", String_final).
 
-jw_number(Number, Number_string) :-
+write_number(Number, String_number) :-
                                number(Number),
-                               number_string(Number, Number_string).
+                               number_string(Number, String_number).
 
 
 json_parse(JSONString, JSON) :- atom_codes(JSONString, List),
@@ -142,8 +147,6 @@ chars_parse_dq([]) --> dq, !.
 chars_parse_dq([C | T]) --> char_parse_dq(C), !,
                             chars_parse_dq(T).
 
-%chars_parse_dq([]) --> [].
-
 
 string_parse_sq(S) --> sq,
                        char_parse_sq(C0),
@@ -162,7 +165,6 @@ chars_parse_sq([]) --> sq, !.
 chars_parse_sq([C | T]) --> char_parse_sq(C), !,
                             chars_parse_sq(T).
 
-%chars_parse_sq([]) --> [].
 
 number(F) --> sign(S),
               digit(D0),
@@ -239,35 +241,35 @@ open_brace --> [123].
 close_brace --> [125].
 
 
-json_get(json_obj(Members), [Field | OtherFields], Result) :-
-    find(Members, [Field], AuxResult),
-    json_get(AuxResult, OtherFields, Result), !.
+json_get(json_obj(Members), [Field | Fields], Result) :-
+    search_obj(Members, [Field], Result_rest),
+    json_get(Result_rest, Fields, Result), !.
 
-json_get(json_array(Elements), [Field | OtherFields], Result) :-
-    nth(Elements, Field, AuxResult),
-    json_get(AuxResult, OtherFields, Result), !.
+json_get(json_array(Elements), [Field | Fields], Result) :-
+    search_array(Elements, Field, Result_rest),
+    json_get(Result_rest, Fields, Result), !.
 
 json_get(Result, [], Result).
 
 json_get(json_obj(JSON_obj), Field, Result) :-
-    find(JSON_obj, Field, Result), !.
+    search_obj(JSON_obj, Field, Result), !.
 
-json_get(json_array(Array), Index, Result) :-
-    nth(Array, Index, Result), !.
+json_get(json_array(Array), I, Result) :-
+    search_array(Array, I, Result), !.
 
 json_get(JSON_obj, Field, Result) :-
     json_get(JSON_obj, [Field], Result).
 
-find([Member | OtherMembers], [Field], Result) :-
+search_obj([Member | Members], [Field], Result) :-
     Member = (Field, Result);
-    find(OtherMembers, [Field], Result).
+    search_obj(Members, [Field], Result).
 
-find([], _, _) :- fail.
+search_obj([], _, _) :- fail.
 
-nth(Array, Index, Element) :-
-    number(Index),
-    length(Before, Index),
-    append(Before, [Element | _], Array).
+search_array(Array, I, Element) :-
+    number(I),
+    length(Back, I),
+    append(Back, [Element | _], Array).
 
 
 
